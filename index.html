@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f0f0f">
+<title>FactCheck</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222222;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #f0ede8;
+    --text2: #888;
+    --text3: #555;
+    --accent: #d4f075;
+    --accent-dim: rgba(212,240,117,0.12);
+    --red: #ff6b6b;
+    --red-dim: rgba(255,107,107,0.12);
+    --amber: #ffb347;
+    --amber-dim: rgba(255,179,71,0.12);
+    --green: #6bff9e;
+    --green-dim: rgba(107,255,158,0.12);
+    --blue: #6bb5ff;
+    --blue-dim: rgba(107,181,255,0.12);
+    --gray-dim: rgba(255,255,255,0.06);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  header {
+    padding: 20px 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--accent); }
+
+  .api-btn {
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 20px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .api-btn:hover { color: var(--text); border-color: var(--border2); }
+
+  main {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .input-wrap {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .input-wrap:focus-within { border-color: var(--border2); }
+
+  textarea {
+    width: 100%;
+    min-height: 130px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 16px;
+    resize: none;
+  }
+  textarea::placeholder { color: var(--text3); }
+
+  .input-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-top: 0.5px solid var(--border);
+  }
+
+  .char-count { font-size: 12px; color: var(--text3); }
+
+  .clear-btn {
+    font-size: 12px;
+    color: var(--text3);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    padding: 0;
+    transition: color 0.15s;
+  }
+  .clear-btn:hover { color: var(--text2); }
+
+  .verify-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .verify-btn:hover { filter: brightness(1.05); }
+  .verify-btn:active { transform: scale(0.98); }
+  .verify-btn:disabled { background: var(--surface2); color: var(--text3); cursor: not-allowed; transform: none; filter: none; }
+
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(15,15,15,0.3);
+    border-top-color: #0f0f0f;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #result { display: none; }
+
+  .result-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .verdict-header {
+    padding: 18px 18px 14px;
+    border-bottom: 0.5px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .verdict-left { flex: 1; }
+
+  .verdict-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .v-false { background: var(--red-dim); color: var(--red); }
+  .v-false .badge-dot { background: var(--red); }
+  .v-true { background: var(--green-dim); color: var(--green); }
+  .v-true .badge-dot { background: var(--green); }
+  .v-misleading { background: var(--amber-dim); color: var(--amber); }
+  .v-misleading .badge-dot { background: var(--amber); }
+  .v-mixed { background: var(--blue-dim); color: var(--blue); }
+  .v-mixed .badge-dot { background: var(--blue); }
+  .v-unverifiable { background: var(--gray-dim); color: var(--text2); }
+  .v-unverifiable .badge-dot { background: var(--text2); }
+
+  .verdict-summary {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+    font-weight: 500;
+  }
+
+  .confidence-pill {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    background: var(--gray-dim);
+    color: var(--text2);
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .result-sections { padding: 4px 0; }
+
+  .section {
+    padding: 14px 18px;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text3);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .section-body {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .alert-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .alert-list li {
+    font-size: 13px;
+    color: var(--text2);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .alert-list li::before {
+    content: '!';
+    position: absolute;
+    left: 0;
+    color: var(--amber);
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  .source-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .source-chip {
+    font-size: 12px;
+    padding: 4px 11px;
+    border: 0.5px solid var(--border2);
+    border-radius: 20px;
+    color: var(--text2);
+    background: var(--surface2);
+  }
+
+  /* API key modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 24px 20px 36px;
+    width: 100%;
+    max-width: 500px;
+    animation: slideUp 0.25s ease;
+  }
+
+  .modal h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .modal p {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .modal input {
+    width: 100%;
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 12px 14px;
+    outline: none;
+    margin-bottom: 12px;
+  }
+  .modal input:focus { border-color: var(--accent); }
+
+  .modal-actions { display: flex; gap: 10px; }
+
+  .btn-save {
+    flex: 1;
+    padding: 13px;
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .btn-cancel {
+    padding: 13px 18px;
+    background: var(--surface2);
+    color: var(--text2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .no-key-notice {
+    background: var(--amber-dim);
+    border: 0.5px solid rgba(255,179,71,0.2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--amber);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Fact<span>Check</span></div>
+  <button class="api-btn" onclick="openModal()">⚙ API Key</button>
+</header>
+
+<main>
+  <div id="no-key-notice" class="no-key-notice" onclick="openModal()" style="display:none;">
+    <span>!</span> Configura a tua Gemini API key para começar
+  </div>
+
+  <div class="input-wrap">
+    <textarea id="fc-input" placeholder="Cola aqui o texto ou link que recebeste no WhatsApp..." oninput="updateChar()"></textarea>
+    <div class="input-footer">
+      <span class="char-count" id="char-count">0 caracteres</span>
+      <button class="clear-btn" onclick="clearInput()">Limpar</button>
+    </div>
+  </div>
+
+  <button class="verify-btn" id="verify-btn" onclick="runCheck()">Verificar</button>
+
+  <div id="result"></div>
+</main>
+
+<!-- Modal API Key -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>Gemini API Key</h3>
+    <p>Vai a <strong>aistudio.google.com</strong> → Get API key, copia e cola aqui. Fica guardada no teu dispositivo.</p>
+    <input type="password" id="api-key-input" placeholder="AIza..." />
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveKey()">Guardar</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'gemini_api_key';
+
+  function getKey() { return localStorage.getItem(STORAGE_KEY) || ''; }
+  function saveKey() {
+    const val = document.getElementById('api-key-input').value.trim();
+    if (!val) return;
+    localStorage.setItem(STORAGE_KEY, val);
+    closeModal();
+    checkKey();
+  }
+  function openModal() {
+    document.getElementById('api-key-input').value = getKey();
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+  function checkKey() {
+    const notice = document.getElementById('no-key-notice');
+    notice.style.display = getKey() ? 'none' : 'flex';
+  }
+
+  function updateChar() {
+    const len = document.getElementById('fc-input').value.length;
+    document.getElementById('char-count').textContent = len + ' caracteres';
+  }
+
+  function clearInput() {
+    document.getElementById('fc-input').value = '';
+    updateChar();
+    document.getElementById('result').style.display = 'none';
+  }
+
+  async function runCheck() {
+    const input = document.getElementById('fc-input').value.trim();
+    if (!input) return;
+
+    const key = getKey();
+    if (!key) { openModal(); return; }
+
+    const btn = document.getElementById('verify-btn');
+    const resultDiv = document.getElementById('result');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>A analisar...';
+    resultDiv.style.display = 'none';
+
+    const prompt = `És um verificador de factos rigoroso. Analisa o conteúdo e responde APENAS com JSON válido, sem texto extra, sem markdown, sem backticks.
+
+Estrutura obrigatória:
+{
+  "veredicto": "FALSO" | "VERDADEIRO" | "ENGANOSO" | "MISTO" | "NÃO VERIFICÁVEL",
+  "resumo": "Uma frase clara sobre a conclusão principal.",
+  "analise": "Explicação factual em 2-4 frases.",
+  "contexto": "Contexto relevante em 1-3 frases.",
+  "sinais_de_alerta": ["array de red flags, ou vazio"],
+  "fontes_recomendadas": ["2-4 fontes onde verificar"],
+  "confianca": "ALTA" | "MÉDIA" | "BAIXA"
+}
+
+Responde em português europeu. Sê directo e factual.
+
+Conteúdo a verificar: ${input}`;
+
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error.message);
+
+      let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      text = text.replace(/```json|```/g, '').trim();
+
+      const parsed = JSON.parse(text);
+      renderResult(parsed);
+
+    } catch(e) {
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `<div class="result-card" style="padding:18px;">
+        <div style="color:var(--red);font-size:14px;">Erro: ${e.message || 'Tenta novamente.'}</div>
+      </div>`;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = 'Verificar';
+  }
+
+  function renderResult(p) {
+    const resultDiv = document.getElementById('result');
+
+    const verdictMap = {
+      'FALSO':           ['v-false',       'Falso'],
+      'VERDADEIRO':      ['v-true',        'Verdadeiro'],
+      'ENGANOSO':        ['v-misleading',  'Enganoso'],
+      'MISTO':           ['v-mixed',       'Misto'],
+      'NÃO VERIFICÁVEL': ['v-unverifiable','Não verificável']
+    };
+    const [cls, label] = verdictMap[p.veredicto] || ['v-unverifiable', p.veredicto || '—'];
+
+    const alertas = (p.sinais_de_alerta || []).length
+      ? `<div class="section">
+          <div class="section-label">Sinais de alerta</div>
+          <ul class="alert-list">${p.sinais_de_alerta.map(a => `<li>${a}</li>`).join('')}</ul>
+        </div>` : '';
+
+    const fontes = (p.fontes_recomendadas || []).length
+      ? `<div class="section">
+          <div class="section-label">Onde verificar</div>
+          <div class="source-chips">${p.fontes_recomendadas.map(f => `<span class="source-chip">${f}</span>`).join('')}</div>
+        </div>` : '';
+
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = `
+      <div class="result-card">
+        <div class="verdict-header">
+          <div class="verdict-left">
+            <div class="verdict-badge ${cls}">
+              <span class="badge-dot"></span>${label}
+            </div>
+            <div class="verdict-summary">${p.resumo || ''}</div>
+          </div>
+          <div class="confidence-pill">Confiança ${(p.confianca || '').toLowerCase()}</div>
+        </div>
+        <div class="result-sections">
+          <div class="section">
+            <div class="section-label">Análise</div>
+            <div class="section-body">${p.analise || ''}</div>
+          </div>
+          ${p.contexto ? `<div class="section">
+            <div class="section-label">Contexto</div>
+            <div class="section-body">${p.contexto}</div>
+          </div>` : ''}
+          ${alertas}
+          ${fontes}
+        </div>
+      </div>`;
+
+    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  checkKey();
+</script>
+</body>
+</html>
