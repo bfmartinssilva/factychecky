@@ -493,7 +493,9 @@ Conteúdo a verificar: ${input}`;
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`
+          'Authorization': `Bearer ${key}`,
+          'HTTP-Referer': 'https://bfmartinssilva.github.io/factcheck',
+          'X-Title': 'FactCheck'
         },
         body: JSON.stringify({
           model: 'meta-llama/llama-3.3-70b-instruct:free',
